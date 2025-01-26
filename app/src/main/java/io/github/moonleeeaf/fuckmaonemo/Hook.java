@@ -14,6 +14,7 @@ import android.text.Spanned;
 import android.util.Pair;
 import android.view.Menu;
 import android.view.View;
+import android.webkit.CookieManager;
 import android.widget.EditText;
 import android.widget.PopupMenu;
 import android.widget.Toast;
@@ -27,6 +28,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.net.Proxy;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -191,6 +193,43 @@ public class Hook implements IXposedHookLoadPackage {
                             }
                             Toast.makeText(getApplication(), "[FuckMaoNemo] " + t, Toast.LENGTH_SHORT).show();
                         }
+                    }
+                }
+            );
+        });
+        
+        // 劫持分享菜单
+        load("long_press_share_work_to_open_more_menu", () -> {
+            XposedBridge.log("[FuckMaoNemo] 长按作品分享更多菜单");
+            XposedBridge.hookMethod(
+                getMethod(
+                    XposedHelpers.findClass("com.codemao.nemo.activity.WorkDetailActivity", classLoader),
+                    "onCreate",
+                    Bundle.class
+                ),
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam mp) throws Throwable {
+                        Activity self = (Activity) mp.thisObject;
+                        View v = self.findViewById(
+                            XposedHelpers.getStaticIntField(
+                                XposedHelpers.findClass("com.codemao.nemo.R$id", classLoader),
+                                "ll_share"
+                            )
+                        );
+                            
+                        long workId = XposedHelpers.getLongField(self, "workId");
+                            
+                        v.setOnLongClickListener((_v) -> {
+                            PopupMenu pop = new PopupMenu(self, v);
+                            Menu m = pop.getMenu();
+                            m.add("获取分享口令").setOnMenuItemClickListener((mm) -> {
+                                openWorkShareCodeGetter(workId);
+                                return false;
+                            });
+                            pop.show();
+                            return false;
+                        });
                     }
                 }
             );
@@ -604,7 +643,7 @@ public class Hook implements IXposedHookLoadPackage {
     public interface Callback {
         public void onCallback() throws Exception;
     }
-    
+   
     public void methodToVoid(Method m) {
         XposedBridge.hookMethod(m, new XC_MethodReplacement() {
             @Override
@@ -627,6 +666,24 @@ public class Hook implements IXposedHookLoadPackage {
                 XposedBridge.log(e);
                 aaaa++;
             }
+        }
+    }
+    
+    public void openWorkShareCodeGetter(long workId) {
+        try {
+            Context self = getApplication();
+            String cookie = CookieManager.getInstance().getCookie("https://api.codemao.cn");
+            int a = cookie.indexOf(";", cookie.indexOf("Bearer "));
+            String token = cookie.substring(cookie.indexOf("Bearer ") + "Bearer ".length(), a == -1 ? cookie.length() : a - 1);
+                                     
+            // XposedBridge.log("cookie=" + cookie);
+            // XposedBridge.log("token=" + token);
+            self.startActivity(new Intent().setFlags(Intent.FLAG_ACTIVITY_NEW_TASK).setData(Uri.parse("nemo://com.codemao.nemo/openwith?type=5&url=" + 
+                URLEncoder.encode("https://moonbcmtools.github.io/CodemaoNemoOneKeyBuildShareCode/?token=" + token + "&workId=" + workId, "utf-8")
+            )));
+        } catch(Exception e) {
+            XposedBridge.log(e);
+            // Toast.makeText(self, "[FuckMaoNemo] " + e, Toast.LENGTH_LONG).show();
         }
     }
     

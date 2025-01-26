@@ -78,6 +78,11 @@
             android:title="绕过防沉迷"
             android:summary="滞空防沉迷检测方法的调用实现无伤速通破解防沉迷，无需 Player 链接，不支持叽叽猫砸进里面的岛3，不支持内嵌社区网页的防沉迷，那不属于我的能力范围" />
         
+         <SwitchPreference
+            android:key="long_press_share_work_to_open_more_menu"
+            android:title="万能的长按分享菜单"
+            android:summary="功能如下:\n获取作品分享口令(有一定风险)" />
+        
         <SwitchPreference
             android:key="newest_works_filter"
             android:title="最新作品过滤"
